@@ -1,52 +1,27 @@
 use image::io::Reader as ImageReader;
-
-use bitvec::array::BitArray;
-use bitvec::BitArr;
-use bitvec::macros::internal::funty::Fundamental;
-use bitvec::order::Lsb0;
+use crate::point::Point;
 
 /// 3x3 = 9 bits, represented as a u16
 #[derive(Debug, Clone, Default)]
-pub struct Tile3x3(BitArr!(for 9, in u16, Lsb0));
+pub struct Tile3x3([[bool; 3]; 3]);
 
-pub const NW_IDX: usize = 0;
-pub const N_IDX: usize = 1;
-pub const NE_IDX: usize = 2;
-pub const W_IDX: usize = 3;
-pub const C_IDX: usize = 4;
-pub const E_IDX: usize = 5;
-pub const SW_IDX: usize = 6;
-pub const S_IDX: usize = 7;
-pub const SE_IDX: usize = 8;
+pub const NW_PT: Point = Point {x: 0, y: 0};
+pub const N_PT: Point = Point {x: 1, y: 0};
+pub const NE_PT: Point = Point {x: 2, y: 0};
+pub const W_PT: Point = Point {x: 0, y: 1};
+pub const C_PT: Point = Point {x: 1, y: 1};
+pub const E_PT: Point = Point {x: 2, y: 1};
+pub const SW_PT: Point = Point {x: 0, y: 2};
+pub const S_PT: Point = Point {x: 1, y: 2};
+pub const SE_PT: Point = Point {x: 2, y: 2};
 
 impl Tile3x3 {
-    #[inline]
-    pub fn idx(x: u8, y: u8) -> usize {
-        (y * 3 + x % 3) as usize
+    pub fn get(&self, pt: &Point) -> bool {
+        self.0[pt.y as usize][pt.x as usize]
     }
 
-    #[inline]
-    pub fn set_pt(&mut self, x: u8, y: u8, value: bool) {
-        self.set(Self::idx(x, y), value)
-    }
-
-    #[inline]
-    pub fn get_pt(&self, x: u8, y: u8) -> bool {
-        self.get(Self::idx(x, y))
-    }
-
-    #[inline]
-    pub fn get(&self, idx: usize) -> bool {
-        unsafe {
-            !self.0.get_unchecked(idx).as_bool()
-        }
-    }
-
-    #[inline]
-    pub fn set(&mut self, idx: usize, value: bool) {
-        unsafe {
-            self.0.set_unchecked(idx, value)
-        }
+    pub fn set(&mut self, pt: &Point, value: bool) {
+        self.0[pt.y as usize][pt.x as usize] = value
     }
 }
 
@@ -70,7 +45,7 @@ pub fn minimal_3x3_tile_set() -> Vec<Tile3x3> {
     for _ in 0..cols {
         let mut sample_x = chunk_center_px;
         for _ in 0..rows {
-            let mut tile : Tile3x3 = Tile3x3(BitArray::new([0]));
+            let mut tile : Tile3x3 = Tile3x3([[false; 3]; 3]);
 
             // read tile by sampling the center of each chunk
             let mut i = 0;
@@ -83,7 +58,7 @@ pub fn minimal_3x3_tile_set() -> Vec<Tile3x3> {
 
                     // if the chunk has a pixel with white, it's not set
                     let is_white = sample.0[0] == 255 && sample.0[1] == 255 && sample.0[2] == 255;
-                    tile.set(i, !is_white);
+                    tile.set(&Point{x: chunk_x as i32, y: chunk_y as i32}, !is_white);
 
                     i += 1;
                 }

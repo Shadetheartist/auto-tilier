@@ -1,5 +1,6 @@
 use crate::point::Point;
 
+#[derive(Clone)]
 pub struct Rect {
     pub x: i32,
     pub right: i32,

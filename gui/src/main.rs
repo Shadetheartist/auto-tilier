@@ -5,6 +5,7 @@ use gtk::glib::Value;
 use gtk::Orientation::{Horizontal, Vertical};
 use image::{ImageBuffer, Rgba};
 use autotiler::grid::RectVec;
+use autotiler::point::Point;
 use autotiler::tile::Tile3x3;
 
 fn main() {
@@ -38,14 +39,14 @@ fn main() {
 
     let bot = Paned::new(Horizontal);
 
-    let mut test_grid = autotiler::grid::generate_test_grid(&tile_set, 8, 8);
+    let test_grid = autotiler::grid::generate_test_grid(&tile_set, 8, 8);
     let grid_widget = tile_grid_widget(&test_grid, 27 * 2);
     let gtk_box = gtk::Box::builder().margin(16).build();
     gtk_box.add(&grid_widget);
     bot.pack1(&gtk_box, true, false);
 
-    autotiler::grid::grid_strip_invalid_in_place(&mut test_grid);
-    let grid_widget = tile_grid_widget(&test_grid, 27 * 2);
+    let stripped = autotiler::grid::grid_strip_invalid(&test_grid);
+    let grid_widget = tile_grid_widget(&stripped, 27 * 2);
     let gtk_box = gtk::Box::builder().margin(16).build();
     gtk_box.add(&grid_widget);
     bot.pack2(&gtk_box, true, false);
@@ -141,7 +142,7 @@ pub fn render_tile(tile: &Tile3x3, width: u32, height: u32) -> ImageBuffer<Rgba<
     ImageBuffer::from_fn(width, height, |x, y| {
         let sample_x = (x as f32 * width_coef) as u8;
         let sample_y = (y as f32 * height_coef) as u8;
-        let tile_sample = tile.get_pt(sample_x, sample_y);
+        let tile_sample = tile.get(&Point{x: sample_x as i32, y: sample_y as i32});
         let pix = tile_sample as u8 * 255;
 
         Rgba([pix, 0, 0, 255])

@@ -13,13 +13,13 @@ fn benchmark_stripping_in_place(c: &mut Criterion) {
             b.iter_custom(|iters| {
                 let mut total_duration = Duration::ZERO;
                 for _i in 0..iters {
-                    let mut test_grid = grid::generate_test_grid(&tile_set, size, size);
+                    let test_grid = grid::generate_test_grid(&tile_set, size, size);
 
                     // benchmarking only the actual stripping
                     let start = Instant::now();
 
-                    grid::grid_strip_invalid_in_place(&mut test_grid);
-                    black_box(test_grid);
+                    let stripped_grid = grid::grid_strip_invalid(&test_grid);
+                    black_box(stripped_grid);
 
                     total_duration += start.elapsed();
 
