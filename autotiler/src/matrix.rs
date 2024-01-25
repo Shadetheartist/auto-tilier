@@ -2,7 +2,7 @@ use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use crate::point::Point;
 use crate::rect::Rect;
-use crate::tile::Tile3x3;
+use crate::tile::{C_IDX, E_IDX, N_IDX, NE_IDX, NW_IDX, S_IDX, SE_IDX, SW_IDX, Tile3x3, W_IDX};
 
 #[derive(Clone)]
 pub struct Matrix {
@@ -84,6 +84,20 @@ impl Matrix {
 
         Some(&mut self.data[idx..idx + 9])
     }
+
+    pub fn strip_invalid(&self) -> Matrix {
+        let mut matrix = Matrix::new(Rect::new(0,0,self.bounds.w/3, self.bounds.h/3));
+
+        for y in 0..self.bounds.h / 3 {
+            for x in 0..self.bounds.w / 3 {
+                let pt = Point {x, y };
+                let tile = self.tile(&pt).unwrap();
+                matrix.tile_mut(&pt).unwrap().copy_from_slice(tile);
+            }
+        }
+
+        matrix
+    }
 }
 
 fn random_tile_from_tile_set(tile_set: &Vec<Tile3x3>) -> Tile3x3 {
@@ -105,3 +119,4 @@ pub fn generate_random_matrix(tile_set: &Vec<Tile3x3>, width: u32, height: u32) 
 
     return matrix;
 }
+

@@ -42,11 +42,11 @@ fn main() {
     gtk_box.add(&grid_widget);
     bot.pack1(&gtk_box, true, false);
 
-    //let stripped = autotiler::grid::grid_strip_invalid(&test_grid);
-    //let grid_widget = tile_grid_widget(&stripped, 27 * 2);
-    //let gtk_box = gtk::Box::builder().margin(16).build();
-    //gtk_box.add(&grid_widget);
-    //bot.pack2(&gtk_box, true, false);
+    let stripped = test_matrix.strip_invalid();
+    let grid_widget = tile_matrix_widget(&stripped, 27 * 2);
+    let gtk_box = gtk::Box::builder().margin(16).build();
+    gtk_box.add(&grid_widget);
+    bot.pack2(&gtk_box, true, false);
 
     top.pack2(&bot, true, false);
 
