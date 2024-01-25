@@ -4,8 +4,7 @@ use gdk_pixbuf::{Pixbuf, Colorspace};
 use gtk::glib::Value;
 use gtk::Orientation::{Horizontal, Vertical};
 use image::{ImageBuffer, Rgba};
-use autotiler::grid::RectVec;
-use autotiler::point::Point;
+use autotiler::matrix::{Matrix, MatrixTile};
 use autotiler::tile::Tile3x3;
 
 fn main() {
@@ -31,25 +30,23 @@ fn main() {
     });
 
     let tile_set = autotiler::tile::minimal_3x3_tile_set();
-
     let tileset_widget = minimal_3x3_tileset_widget(&tile_set);
-
     let top = Paned::new(Vertical);
     top.pack1(&tileset_widget, true, false);
 
     let bot = Paned::new(Horizontal);
 
-    let test_grid = autotiler::grid::generate_test_grid(&tile_set, 8, 8);
-    let grid_widget = tile_grid_widget(&test_grid, 27 * 2);
+    let test_matrix = autotiler::matrix::generate_random_matrix(&tile_set, 8, 8);
+    let grid_widget = tile_matrix_widget(&test_matrix, 27 * 2);
     let gtk_box = gtk::Box::builder().margin(16).build();
     gtk_box.add(&grid_widget);
     bot.pack1(&gtk_box, true, false);
 
-    let stripped = autotiler::grid::grid_strip_invalid(&test_grid);
-    let grid_widget = tile_grid_widget(&stripped, 27 * 2);
-    let gtk_box = gtk::Box::builder().margin(16).build();
-    gtk_box.add(&grid_widget);
-    bot.pack2(&gtk_box, true, false);
+    //let stripped = autotiler::grid::grid_strip_invalid(&test_grid);
+    //let grid_widget = tile_grid_widget(&stripped, 27 * 2);
+    //let gtk_box = gtk::Box::builder().margin(16).build();
+    //gtk_box.add(&grid_widget);
+    //bot.pack2(&gtk_box, true, false);
 
     top.pack2(&bot, true, false);
 
@@ -61,14 +58,13 @@ fn main() {
     gtk::main();
 }
 
-fn tile_grid_widget(tile_grid: &RectVec, size: u32) -> Grid {
+fn tile_matrix_widget(matrix: &Matrix, size: u32) -> Grid {
     let grid = Grid::builder().build();
 
-
-    for (pos, tile) in tile_grid.iter_enumerate() {
+    for (pos, tile) in matrix.iter_tiles_enumerate() {
         // Generate an image.
         //let img = grid_image_buffer(1024, 1024, 64, 3);
-        let img = render_tile(tile, size, size);
+        let img = render_tile_matrix(tile, size, size);
 
         // Convert the image to a GdkPixbuf.
         let pixel_buffer = image_to_pixbuf(&img);
@@ -142,8 +138,22 @@ pub fn render_tile(tile: &Tile3x3, width: u32, height: u32) -> ImageBuffer<Rgba<
     ImageBuffer::from_fn(width, height, |x, y| {
         let sample_x = (x as f32 * width_coef) as u8;
         let sample_y = (y as f32 * height_coef) as u8;
-        let tile_sample = tile.get(&Point{x: sample_x as i32, y: sample_y as i32});
+        let tile_sample = tile.get(Tile3x3::idx(sample_x, sample_y));
         let pix = tile_sample as u8 * 255;
+
+        Rgba([pix, 0, 0, 255])
+    })
+}
+
+pub fn render_tile_matrix(tile: &MatrixTile, width: u32, height: u32) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+    let width_coef = 3.0 / width as f32;
+    let height_coef = 3.0 / height as f32;
+
+    ImageBuffer::from_fn(width, height, |x, y| {
+        let sample_x = (x as f32 * width_coef) as u8;
+        let sample_y = (y as f32 * height_coef) as u8;
+        let tile_sample = tile.get(Tile3x3::idx(sample_x, sample_y)).unwrap();
+        let pix = *tile_sample as u8 * 255;
 
         Rgba([pix, 0, 0, 255])
     })

@@ -1,4 +1,4 @@
-use crate::tile::{Tile3x3, C_PT, E_PT, N_PT, NE_PT, NW_PT, S_PT, SE_PT, SW_PT, W_PT};
+use crate::tile::{Tile3x3, C_IDX, E_IDX, N_IDX, NE_IDX, NW_IDX, S_IDX, SE_IDX, SW_IDX, W_IDX};
 use rand::prelude::*;
 use crate::point::Point;
 use crate::rect::Rect;
@@ -76,62 +76,62 @@ pub fn grid_strip_invalid(tile_grid: &RectVec) -> RectVec {
 
         let mut tile = tile.clone();
 
-        if tile.get(&C_PT) == false {
+        if tile.get(C_IDX) == false {
             continue;
         }
 
         // check diagonal neighbour for contiguous fill cases
-        if tile.get(&NW_PT) {
+        if tile.get(NW_IDX) {
             if let Some(neighbour) = tile_grid.get_pt(&pos.north_west()) {
-                tile.set(&NW_PT, neighbour.get(&SE_PT));
+                tile.set(NW_IDX, neighbour.get(SE_IDX));
             }
         }
 
-        if tile.get(&NE_PT) {
+        if tile.get(NE_IDX) {
             if let Some(neighbour) = tile_grid.get_pt(&pos.north_east()) {
-                tile.set(&NE_PT, neighbour.get(&SW_PT));
+                tile.set(NE_IDX, neighbour.get(SW_IDX));
             }
         }
 
-        if tile.get(&SW_PT) {
+        if tile.get(SW_IDX) {
             if let Some(neighbour) = tile_grid.get_pt(&pos.south_west()) {
-                tile.set(&SW_PT, neighbour.get(&NE_PT));
+                tile.set(SW_IDX, neighbour.get(NE_IDX));
             }
         }
 
-        if tile.get(&SE_PT) {
+        if tile.get(SE_IDX) {
             if let Some(neighbour) = tile_grid.get_pt(&pos.south_east()) {
-                tile.set(&SE_PT, neighbour.get(&NW_PT));
+                tile.set(SE_IDX, neighbour.get(NW_IDX));
             }
         }
 
         // clear out invalid pixels
         if let Some(neighbour) = tile_grid.get_pt(&pos.north()) {
-            tile.set(&N_PT, tile.get(&N_PT) & neighbour.get(&C_PT) & neighbour.get(&S_PT) & tile.get(&C_PT));
+            tile.set(N_IDX, tile.get(N_IDX) & neighbour.get(C_IDX) & neighbour.get(S_IDX) & tile.get(C_IDX));
 
-            tile.set(&NW_PT, tile.get(&NW_PT) & neighbour.get(&C_PT) & neighbour.get(&SW_PT) & tile.get(&C_PT));
-            tile.set(&NE_PT, tile.get(&NE_PT) & neighbour.get(&C_PT) & neighbour.get(&SE_PT) & tile.get(&C_PT));
+            tile.set(NW_IDX, tile.get(NW_IDX) & neighbour.get(C_IDX) & neighbour.get(SW_IDX) & tile.get(C_IDX));
+            tile.set(NE_IDX, tile.get(NE_IDX) & neighbour.get(C_IDX) & neighbour.get(SE_IDX) & tile.get(C_IDX));
         }
 
         if let Some(neighbour) = tile_grid.get_pt(&pos.west()) {
-            tile.set(&W_PT, tile.get(&W_PT) & neighbour.get(&C_PT) & neighbour.get(&E_PT) & tile.get(&C_PT));
+            tile.set(W_IDX, tile.get(W_IDX) & neighbour.get(C_IDX) & neighbour.get(E_IDX) & tile.get(C_IDX));
 
-            tile.set(&NW_PT, tile.get(&NW_PT) & neighbour.get(&C_PT) & neighbour.get(&NE_PT) & tile.get(&C_PT));
-            tile.set(&SW_PT, tile.get(&SW_PT) & neighbour.get(&C_PT) & neighbour.get(&SE_PT) & tile.get(&C_PT));
+            tile.set(NW_IDX, tile.get(NW_IDX) & neighbour.get(C_IDX) & neighbour.get(NE_IDX) & tile.get(C_IDX));
+            tile.set(SW_IDX, tile.get(SW_IDX) & neighbour.get(C_IDX) & neighbour.get(SE_IDX) & tile.get(C_IDX));
         }
 
         if let Some(neighbour) = tile_grid.get_pt(&pos.east()) {
-            tile.set(&E_PT, tile.get(&E_PT) & neighbour.get(&C_PT) & neighbour.get(&W_PT) & tile.get(&C_PT));
+            tile.set(E_IDX, tile.get(E_IDX) & neighbour.get(C_IDX) & neighbour.get(W_IDX) & tile.get(C_IDX));
 
-            tile.set(&NE_PT, tile.get(&NE_PT) & neighbour.get(&C_PT) & neighbour.get(&NW_PT) & tile.get(&C_PT));
-            tile.set(&SE_PT, tile.get(&SE_PT) & neighbour.get(&C_PT) & neighbour.get(&SW_PT) & tile.get(&C_PT));
+            tile.set(NE_IDX, tile.get(NE_IDX) & neighbour.get(C_IDX) & neighbour.get(NW_IDX) & tile.get(C_IDX));
+            tile.set(SE_IDX, tile.get(SE_IDX) & neighbour.get(C_IDX) & neighbour.get(SW_IDX) & tile.get(C_IDX));
         }
 
         if let Some(neighbour) = tile_grid.get_pt(&pos.south()) {
-            tile.set(&S_PT, tile.get(&S_PT) & neighbour.get(&C_PT) & neighbour.get(&N_PT) & tile.get(&C_PT));
+            tile.set(S_IDX, tile.get(S_IDX) & neighbour.get(C_IDX) & neighbour.get(N_IDX) & tile.get(C_IDX));
 
-            tile.set(&SW_PT, tile.get(&SW_PT) & neighbour.get(&C_PT) & neighbour.get(&NW_PT) & tile.get(&C_PT));
-            tile.set(&SE_PT, tile.get(&SE_PT) & neighbour.get(&C_PT) & neighbour.get(&NE_PT) & tile.get(&C_PT));
+            tile.set(SW_IDX, tile.get(SW_IDX) & neighbour.get(C_IDX) & neighbour.get(NW_IDX) & tile.get(C_IDX));
+            tile.set(SE_IDX, tile.get(SE_IDX) & neighbour.get(C_IDX) & neighbour.get(NE_IDX) & tile.get(C_IDX));
         }
 
         stripped.set_pt(&pos, tile);
