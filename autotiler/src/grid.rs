@@ -21,7 +21,7 @@ impl RectVec {
 
     pub fn idx(&self, pt: &Point) -> Option<usize> {
         if self.bounds.contains(pt) {
-            Some((pt.y * self.bounds.w + pt.x % self.bounds.w) as usize)
+            Some((pt.y * self.bounds.w + pt.x) as usize)
         } else {
             None
         }
@@ -39,7 +39,7 @@ impl RectVec {
     }
 
     pub fn iter_enumerate(&self) -> impl Iterator<Item=(Point, &Tile3x3)> {
-        self.data.iter().enumerate().map(move |(index, tile)| {
+        self.data.iter().enumerate().map(|(index, tile)| {
             let x = index as i32 % self.bounds.w;
             let y = index as i32 / self.bounds.w;
             (Point { x, y }, tile)
