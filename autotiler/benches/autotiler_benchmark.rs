@@ -36,7 +36,7 @@ fn benchmark_stripping_in_place(c: &mut Criterion) {
 fn benchmark_stripping_matrix(c: &mut Criterion) {
     let tile_set = tile::minimal_3x3_tile_set();
 
-    let mut group = c.benchmark_group("stripping invalids in-place");
+    let mut group = c.benchmark_group("matrix stripping invalids");
 
     for size in [8, 32, 128, 512, 2048].iter() {
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
