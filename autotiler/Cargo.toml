@@ -1,0 +1,16 @@
+[package]
+name = "autotiler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8"  # Use the latest version
+image = "0.24.8"
+bitvec = "1.0.1"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "autotiler_benchmark"
+harness = false
