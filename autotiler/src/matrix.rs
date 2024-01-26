@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use std::thread;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
@@ -155,8 +156,20 @@ impl Matrix {
             }
         };
 
+        if matrix.data.len() < 64 * 64 * 9 {
+            for y in 0..matrix.px_bounds.h / 3 {
+                for x in 0..matrix.px_bounds.w / 3 {
+                    let pos = Point { x, y };
+                    let tile = matrix.tile_mut(&pos).unwrap();
+                    strip(&pos, tile);
+                }
+            }
+
+            return matrix
+        }
+
         // length of a row in px
-        let rows_per_chunk = 8;
+        let rows_per_chunk = 32;
         let chunk_size = (matrix.tile_bounds.w * 9 * rows_per_chunk) as usize;
         let chunks = matrix.data.chunks_mut(chunk_size);
 
@@ -172,7 +185,7 @@ impl Matrix {
 
                             let start_idx = (y * matrix.tile_bounds.w * 9 + x*9) as usize;
                             if start_idx >= chunk.len() && start_idx+9 >= chunk.len() {
-                                break
+                                return
                             }
 
                             let tile: &mut MatrixTile = &mut chunk[start_idx..start_idx+9];
