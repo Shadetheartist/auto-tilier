@@ -156,16 +156,28 @@ impl Matrix {
         };
 
         // length of a row in px
-        let chunk_size = (matrix.tile_bounds.w * 9) as usize;
-        let rows = matrix.data.chunks_mut(chunk_size);
+        let rows_per_chunk = 8;
+        let chunk_size = (matrix.tile_bounds.w * 9 * rows_per_chunk) as usize;
+        let chunks = matrix.data.chunks_mut(chunk_size);
 
         thread::scope(|s| {
-            for (y, row) in rows.enumerate() {
+            for (chunk_idx, chunk) in chunks.enumerate() {
                 s.spawn(move || {
-                    for x in 0..matrix.tile_bounds.w {
-                        let pos = Point { x, y: y as i32 };
-                        let tile: &mut MatrixTile = &mut row[(x * 9) as usize .. ((x+1) * 9) as usize];
-                        strip(&pos, tile);
+                    for y in 0..rows_per_chunk {
+                        for x in 0..matrix.tile_bounds.w {
+                            let pos = Point {
+                                x: x,
+                                y: (y + chunk_idx as i32 * rows_per_chunk)
+                            };
+
+                            let start_idx = (y * matrix.tile_bounds.w * 9 + x*9) as usize;
+                            if start_idx >= chunk.len() && start_idx+9 >= chunk.len() {
+                                break
+                            }
+
+                            let tile: &mut MatrixTile = &mut chunk[start_idx..start_idx+9];
+                            strip(&pos, tile);
+                        }
                     }
                 });
             }
