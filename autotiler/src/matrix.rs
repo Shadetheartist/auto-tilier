@@ -1,3 +1,4 @@
+use std::thread;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use crate::point::Point;
@@ -25,15 +26,12 @@ impl Matrix {
     }
 
     pub fn idx_tile(&self, pt: &Point) -> Option<usize> {
-
         if self.tile_bounds.contains(pt) {
             let idx = (pt.y * self.px_bounds.w * 3 + pt.x * 9) as usize;
             Some(idx)
         } else {
             None
         }
-
-
     }
 
     pub fn idx(&self, pt: &Point) -> Option<usize> {
@@ -96,70 +94,82 @@ impl Matrix {
     pub fn strip_invalid(&self) -> Matrix {
         let mut matrix = self.clone();
 
-        for y in 0..matrix.px_bounds.h / 3 {
-            for x in 0..matrix.px_bounds.w / 3 {
-                let pos = Point {x, y };
-                let tile = matrix.tile_mut(&pos).unwrap();
+        let strip = |pos: &Point, tile: &mut MatrixTile| {
 
-                if tile[C_IDX] == false {
-                    continue;
-                }
+            if tile[C_IDX] == false {
+                return;
+            }
 
-                // check diagonal neighbour for contiguous fill cases
-                if tile[NW_IDX] {
-                    if let Some(neighbour) = self.tile(&pos.north_west()) {
-                        tile[NW_IDX] = neighbour[SE_IDX];
-                    }
-                }
-
-                if tile[NE_IDX] {
-                    if let Some(neighbour) = self.tile(&pos.north_east()) {
-                        tile[NE_IDX] = neighbour[SW_IDX];
-                    }
-                }
-
-                if tile[SW_IDX] {
-                    if let Some(neighbour) = self.tile(&pos.south_west()) {
-                        tile[SW_IDX] = neighbour[NE_IDX];
-                    }
-                }
-
-                if tile[SE_IDX] {
-                    if let Some(neighbour) = self.tile(&pos.south_east()) {
-                        tile[SE_IDX] = neighbour[NW_IDX];
-                    }
-                }
-
-                // clear out invalid pixels
-                if let Some(neighbour) = self.tile(&pos.north()) {
-                    tile[N_IDX] = tile[N_IDX] & neighbour[C_IDX] & neighbour[S_IDX] & tile[C_IDX];
-
-                    tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
-                    tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
-                }
-
-                if let Some(neighbour) = self.tile(&pos.west()) {
-                    tile[W_IDX] = tile[W_IDX] & neighbour[C_IDX] & neighbour[E_IDX] & tile[C_IDX];
-
-                    tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
-                    tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
-                }
-
-                if let Some(neighbour) = self.tile(&pos.east()) {
-                    tile[E_IDX] = tile[E_IDX] & neighbour[C_IDX] & neighbour[W_IDX] & tile[C_IDX];
-
-                    tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
-                    tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
-                }
-
-                if let Some(neighbour) = self.tile(&pos.south()) {
-                    tile[S_IDX] = tile[S_IDX] & neighbour[C_IDX] & neighbour[N_IDX] & tile[C_IDX];
-
-                    tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
-                    tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
+            // check diagonal neighbour for contiguous fill cases
+            if tile[NW_IDX] {
+                if let Some(neighbour) = self.tile(&pos.north_west()) {
+                    tile[NW_IDX] = neighbour[SE_IDX];
                 }
             }
-        }
+
+            if tile[NE_IDX] {
+                if let Some(neighbour) = self.tile(&pos.north_east()) {
+                    tile[NE_IDX] = neighbour[SW_IDX];
+                }
+            }
+
+            if tile[SW_IDX] {
+                if let Some(neighbour) = self.tile(&pos.south_west()) {
+                    tile[SW_IDX] = neighbour[NE_IDX];
+                }
+            }
+
+            if tile[SE_IDX] {
+                if let Some(neighbour) = self.tile(&pos.south_east()) {
+                    tile[SE_IDX] = neighbour[NW_IDX];
+                }
+            }
+
+            // clear out invalid pixels
+            if let Some(neighbour) = self.tile(&pos.north()) {
+                tile[N_IDX] = tile[N_IDX] & neighbour[C_IDX] & neighbour[S_IDX] & tile[C_IDX];
+
+                tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
+                tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
+            }
+
+            if let Some(neighbour) = self.tile(&pos.west()) {
+                tile[W_IDX] = tile[W_IDX] & neighbour[C_IDX] & neighbour[E_IDX] & tile[C_IDX];
+
+                tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
+                tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
+            }
+
+            if let Some(neighbour) = self.tile(&pos.east()) {
+                tile[E_IDX] = tile[E_IDX] & neighbour[C_IDX] & neighbour[W_IDX] & tile[C_IDX];
+
+                tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
+                tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
+            }
+
+            if let Some(neighbour) = self.tile(&pos.south()) {
+                tile[S_IDX] = tile[S_IDX] & neighbour[C_IDX] & neighbour[N_IDX] & tile[C_IDX];
+
+                tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
+                tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
+            }
+        };
+
+        // length of a row in px
+        let chunk_size = (matrix.tile_bounds.w * 9) as usize;
+        let rows = matrix.data.chunks_mut(chunk_size);
+
+        thread::scope(|s| {
+            for (y, row) in rows.enumerate() {
+                s.spawn(move || {
+                    for x in 0..matrix.tile_bounds.w {
+                        let pos = Point { x, y: y as i32 };
+                        let tile: &mut MatrixTile = &mut row[(x * 9) as usize .. ((x+1) * 9) as usize];
+                        strip(&pos, tile);
+                    }
+                });
+            }
+        });
 
         matrix
     }
