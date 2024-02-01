@@ -119,3 +119,6 @@ The performance gain is huge. From 70ms to **15ms**.
 
 From my original time of 95ms, that's an 85% increase in
 performance *without even changing the algorithm*.
+
+There's probably still more that can be done. But all these optimizations are going toward creating test data. So, time
+to move on.
