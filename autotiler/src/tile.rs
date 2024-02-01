@@ -52,7 +52,7 @@ pub fn minimal_3x3_tile_set() -> Vec<Tile3x3> {
     let chunk_size_px = tile_size_px/3;
     let chunk_center_px = chunk_size_px/2;
 
-    let img = ImageReader::open("../3x3-minimal.png").unwrap();
+    let img = ImageReader::open("../img/3x3-minimal.png").unwrap();
     let decoded = img.decode().unwrap();
     let rgba = decoded.as_rgba8().unwrap();
 
