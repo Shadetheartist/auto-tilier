@@ -1,9 +1,14 @@
+#[derive(Copy, Clone)]
 pub struct Point {
     pub x: i32,
     pub y: i32,
 }
 
 impl Point {
+    pub fn eq(&self, other: &Point) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+
     pub fn north_west(&self) -> Point {
         Point {
             x: self.x - 1,

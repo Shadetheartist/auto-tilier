@@ -47,6 +47,8 @@ impl Matrix {
         }
     }
 
+
+
     pub fn get_pt(&self, pt: &Point) -> Option<bool> {
         let idx = self.idx(pt)?;
         Some(self.data[idx])

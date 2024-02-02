@@ -1,160 +1,240 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use gtk::prelude::*;
-use gtk::{gdk, glib, Grid, Image, Paned, Window, WindowType};
-use gdk_pixbuf::{Pixbuf, Colorspace};
+use gtk::{Application, ApplicationWindow, Button, DrawingArea, gdk, Paned};
+use gtk::glib::Propagation::Proceed;
 use gtk::glib::Value;
-use gtk::Orientation::{Horizontal, Vertical};
-use image::{ImageBuffer, Rgba};
-use autotiler::matrix::{Matrix, MatrixTile};
-use autotiler::tile::Tile3x3;
+use gtk::Orientation::{Horizontal};
+use autotiler::matrix::Matrix;
+use autotiler::point::Point;
 
 fn main() {
-    // Initialize GTK.
-    gtk::init().expect("Failed to initialize GTK.");
+    let application = Application::new(Some("com.example.MouseEvents"), Default::default());
 
-    // Create a new GTK window.
-    let window = Window::new(WindowType::Toplevel);
-    window.set_title("Test Window");
-    window.set_default_size(1024, 1024);
+    application.connect_activate(|app| {
+        // Create a new GTK window.
+        let window = ApplicationWindow::new(app);
+        window.set_title("Test Window");
+        window.set_default_size(100, 100);
 
-    // Connect a key press event handler.
-    window.connect("key-press-event", true, |args| {
-        let raw_event = &args[1].get::<gdk::Event>().unwrap();
-        match raw_event.downcast_ref::<gdk::EventKey>() {
-            None => {}
-            Some(event) => {
-                println!("key value: {:?}", event.keyval());
-                println!("modifiers: {:?}", event.state());
+        // Connect a key press event handler.
+        window.connect("key-press-event", true, |args| {
+            let raw_event = &args[1].get::<gdk::Event>().unwrap();
+            match raw_event.downcast_ref::<gdk::EventKey>() {
+                None => {}
+                Some(event) => {
+                    println!("key value: {:?}", event.keyval());
+                    println!("modifiers: {:?}", event.state());
+                }
             }
-        }
-        Some(Value::from(true))
+            Some(Value::from(true))
+        });
+
+        let tile_set = autotiler::tile::minimal_3x3_tile_set();
+
+        let bot = Paned::new(Horizontal);
+
+        let random_matrix = autotiler::matrix::generate_random_matrix(&tile_set, 8, 8);
+        let test_matrix = random_matrix.strip_invalid();
+        let grid_widget = tile_matrix_widget(&test_matrix, 27 * 3);
+        let gtk_box = gtk::Box::builder().margin(16).build();
+        gtk_box.add(&grid_widget);
+        bot.pack1(&gtk_box, true, false);
+
+        let button = Button::with_label("Click Me");
+
+        // Connect to mouse button press event for the button
+        button.connect_button_press_event(|_, event| {
+            println!("Button pressed! Event type: {:?}", event.event_type());
+            Proceed
+        });
+
+        bot.pack2(&button, true, false);
+
+        window.add(&bot);
+
+        // CSS for hover effect
+        let css_provider = gtk::CssProvider::new();
+        css_provider.load_from_data(
+            b".hover>image {  border: 1px solid white; margin: 0px;} image {margin: 1px;}",
+        ).expect("Failed to load CSS");
+
+        // Apply CSS
+        gtk::StyleContext::add_provider_for_screen(
+            &gdk::Screen::default().expect("Error initializing gtk css provider."),
+            &css_provider,
+            gtk::STYLE_PROVIDER_PRIORITY_USER,
+        );
+
+        window.show_all();
     });
 
-    let tile_set = autotiler::tile::minimal_3x3_tile_set();
-    let tileset_widget = minimal_3x3_tileset_widget(&tile_set);
-    let top = Paned::new(Vertical);
-    top.pack1(&tileset_widget, true, false);
 
-    let bot = Paned::new(Horizontal);
-
-    let test_matrix = autotiler::matrix::generate_random_matrix(&tile_set, 8, 8);
-    let grid_widget = tile_matrix_widget(&test_matrix, 27 * 2);
-    let gtk_box = gtk::Box::builder().margin(16).build();
-    gtk_box.add(&grid_widget);
-    bot.pack1(&gtk_box, true, false);
-
-    let stripped = test_matrix.strip_invalid();
-    let grid_widget = tile_matrix_widget(&stripped, 27 * 2);
-    let gtk_box = gtk::Box::builder().margin(16).build();
-    gtk_box.add(&grid_widget);
-    bot.pack2(&gtk_box, true, false);
-
-    top.pack2(&bot, true, false);
-
-    window.add(&top);
-
-    window.show_all();
-
-    // Start the GTK main loop.
-    gtk::main();
+    application.run();
 }
 
-fn tile_matrix_widget(matrix: &Matrix, size: u32) -> Grid {
-    let grid = Grid::builder().build();
+struct TileWidgetState {
+    hovered_pos: Point,
+    active_pos: Option<Point>,
+    pathing_pos: Option<Point>,
+    active: bool,
+}
 
-    for (pos, tile) in matrix.iter_tiles_enumerate() {
-        // Generate an image.
-        //let img = grid_image_buffer(1024, 1024, 64, 3);
-        let img = render_tile_matrix(tile, size, size);
+fn tile_matrix_widget(matrix: &Matrix, size: u32) -> DrawingArea {
+    let drawing_area = DrawingArea::new();
 
-        // Convert the image to a GdkPixbuf.
-        let pixel_buffer = image_to_pixbuf(&img);
+    let state = Rc::new(RefCell::new(TileWidgetState {
+        hovered_pos: Point { x: 0, y: 0 },
+        active_pos: None,
+        pathing_pos: None,
+        active: false,
+    }));
 
-        // Create a GTK image widget from the file.
-        let image = Image::from_pixbuf(Some(&pixel_buffer));
-        image.set_margin(1);
+    let size = size as f64;
+    let px_coefficient = size / 3.0;
 
-        // Add the image to the window and show everything.
-        grid.attach(&image, pos.x, pos.y, 1, 1);
+    pub fn pt(idx: usize) -> Point {
+        let x = idx as i32 % 3;
+        let y = idx as i32 / 3;
+        Point { x, y }
     }
 
-    grid
-}
+    drawing_area.set_size_request(matrix.px_bounds.w * px_coefficient as i32, matrix.px_bounds.h * px_coefficient as i32);
 
-fn minimal_3x3_tileset_widget(tile_set: &Vec<Tile3x3>) -> Grid {
-    let grid = Grid::builder().build();
+    let matrix = matrix.clone();
 
-    for (idx, tile) in tile_set.iter().enumerate() {
-        // Generate an image.
-        //let img = grid_image_buffer(1024, 1024, 64, 3);
-        let img = render_tile(tile, 64, 64);
+    {
+        let state = Rc::clone(&state);
+        drawing_area.connect_draw(move |_, ctx| {
+            let state = state.borrow_mut();
 
-        // Convert the image to a GdkPixbuf.
-        let pixel_buffer = image_to_pixbuf(&img);
+            for (pos, tile) in matrix.iter_tiles_enumerate() {
+                // Generate an image.
+                //let img = grid_image_buffer(1024, 1024, 64, 3);
 
-        // Create a GTK image widget from the file.
-        let image = Image::from_pixbuf(Some(&pixel_buffer));
+                let px_offset_x = pos.x as f64 * size;
+                let px_offset_y = pos.y as f64 * size;
 
-        let row = idx / 12;
-        let col = idx % 12;
+                for (i, px) in tile.iter().enumerate() {
+                    let hovered = state.hovered_pos.eq(&pos);
+                    let is_active = state.active_pos.is_some() && state.active_pos.unwrap().eq(&pos);
+                    let is_pathing = state.pathing_pos.is_some() && state.pathing_pos.unwrap().eq(&pos);
 
-        // Add the image to the window and show everything.
-        grid.attach(&image, col as i32, row as i32, 1, 1);
+                    if is_active  {
+                        ctx.set_source_rgba(
+                            if hovered { 0.3 } else { 0.0 },
+                            if hovered { 0.3 } else { 0.0 },
+                            if *px { 1.0 } else { if hovered { 0.3 } else { 0.0 } },
+                            1.0,
+                        );
+                    } else {
+                        if is_pathing {
+                            ctx.set_source_rgba(
+                                if hovered { 0.3 } else { 0.0 },
+                                if hovered { 0.3 } else { 0.0 },
+                                if *px { 1.0 } else { if hovered { 0.3 } else { 0.0 } },
+                                1.0,
+                            );
+                        } else {
+                            ctx.set_source_rgba(
+                                if *px { 1.0 } else { if hovered { 0.3 } else { 0.0 } },
+                                if hovered { 0.3 } else { 0.0 },
+                                if hovered { 0.3 } else { 0.0 },
+                                1.0,
+                            );
+                        }
+                    }
+
+                    let p = pt(i);
+
+                    ctx.rectangle(
+                        px_offset_x + p.x as f64 * px_coefficient,
+                        px_offset_y + p.y as f64 * px_coefficient,
+                        px_coefficient,
+                        px_coefficient,
+                    );
+
+                    ctx.fill().unwrap();
+                }
+            }
+
+            Proceed
+        });
     }
 
-    grid
-}
+    {
+        drawing_area.add_events(gdk::EventMask::POINTER_MOTION_MASK);
 
-// Function to convert an image to a GdkPixbuf.
-fn image_to_pixbuf(img: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> Pixbuf {
-    let (width, height) = img.dimensions();
-    let row_stride = 4 * width as i32;
-    Pixbuf::from_bytes(
-        &glib::Bytes::from(&img.clone().into_raw()),
-        Colorspace::Rgb,
-        true,
-        8,
-        width as i32,
-        height as i32,
-        row_stride,
-    )
-}
+        let state = Rc::clone(&state);
+        drawing_area.connect_motion_notify_event(move |_widget, event| {
+            let mut state = state.borrow_mut();
 
-// Function to generate an image.
-pub fn grid_image_buffer(width: u32, height: u32, grid_size: u32, grid_stroke_width: u32) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-    ImageBuffer::from_fn(width, height, |x, y| {
-        if x % grid_size < grid_stroke_width || y % grid_size < grid_stroke_width {
-            Rgba([0, 0, 0, 128])
-        } else {
-            Rgba([0, 0, 0, 0])
-        }
-    })
-}
+            let x = (event.position().0 / size) as i32;
+            let y = (event.position().1 / size) as i32;
+
+            if x != state.hovered_pos.x || y != state.hovered_pos.y {
+                println!("Mouse move position: ({}, {})", x, y);
+
+                _widget.queue_draw();
+                state.hovered_pos.x = x;
+                state.hovered_pos.y = y;
+
+                if let Some(active_pos) = state.active_pos {
+                    if x != active_pos.x || y != active_pos.y {
+                        if (active_pos.x - x).abs() <= 1 && y == active_pos.y || (active_pos.y - y).abs() <= 1 && x == active_pos.x {
+                            state.pathing_pos = Some(state.hovered_pos);
+                        }
+                    }
+                }
+            }
+
+            Proceed
+        });
+    }
+
+    {
+        let state = Rc::clone(&state);
+        drawing_area.add_events(gdk::EventMask::BUTTON_PRESS_MASK);
+
+        drawing_area.connect_button_press_event(move |_widget, event| {
+            let mut state = state.borrow_mut();
+
+            let x = (event.position().0 / size) as i32;
+            let y = (event.position().1 / size) as i32;
+
+            if !state.active {
+                _widget.queue_draw();
+                state.active_pos = Some(state.hovered_pos.clone());
+                state.active = true;
+            }
 
 
-pub fn render_tile(tile: &Tile3x3, width: u32, height: u32) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-    let width_coef = 3.0 / width as f32;
-    let height_coef = 3.0 / height as f32;
+            println!("Mouse press position: ({}, {})", x, y);
 
-    ImageBuffer::from_fn(width, height, |x, y| {
-        let sample_x = (x as f32 * width_coef) as u8;
-        let sample_y = (y as f32 * height_coef) as u8;
-        let tile_sample = tile.get(Tile3x3::idx(sample_x, sample_y));
-        let pix = tile_sample as u8 * 255;
+            Proceed
+        });
+    }
 
-        Rgba([pix, 0, 0, 255])
-    })
-}
+    {
+        let state = Rc::clone(&state);
+        drawing_area.add_events(gdk::EventMask::BUTTON_RELEASE_MASK);
 
-pub fn render_tile_matrix(tile: &MatrixTile, width: u32, height: u32) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-    let width_coef = 3.0 / width as f32;
-    let height_coef = 3.0 / height as f32;
+        drawing_area.connect_button_release_event(move |_widget, event| {
+            let mut state = state.borrow_mut();
+            let x = (event.position().0 / size) as i32;
+            let y = (event.position().1 / size) as i32;
 
-    ImageBuffer::from_fn(width, height, |x, y| {
-        let sample_x = (x as f32 * width_coef) as u8;
-        let sample_y = (y as f32 * height_coef) as u8;
-        let tile_sample = tile.get(Tile3x3::idx(sample_x, sample_y)).unwrap();
-        let pix = *tile_sample as u8 * 255;
+            _widget.queue_draw();
+            state.pathing_pos = None;
+            state.active_pos = None;
+            state.active = false;
 
-        Rgba([pix, 0, 0, 255])
-    })
+            println!("Mouse release position: ({}, {})", x, y);
+
+            Proceed
+        });
+    }
+
+
+    drawing_area
 }
