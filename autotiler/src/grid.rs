@@ -28,15 +28,27 @@ impl RectVec {
         }
     }
 
+    pub fn idx_unchecked(&self, pt: &Point) -> usize {
+        (pt.y * self.bounds.w + pt.x) as usize
+    }
+
     pub fn get_pt(&self, pt: &Point) -> Option<&Tile3x3> {
         let idx = self.idx(pt)?;
         Some(&self.data[idx])
+    }
+
+    pub fn get_pt_unchecked(&self, pt: &Point) -> &Tile3x3 {
+        &self.data[self.idx_unchecked(pt)]
     }
 
     pub fn set_pt(&mut self, pt: &Point, value: Tile3x3) {
         if let Some(idx) = self.idx(pt) {
             self.data[idx] = value
         }
+    }
+
+    pub fn set_pt_unchecked(&mut self, pt: &Point, value: Tile3x3) {
+        self.data[self.idx_unchecked(pt)] = value
     }
 
     pub fn iter_enumerate(&self) -> impl Iterator<Item=(Point, &Tile3x3)> {
@@ -70,10 +82,23 @@ pub fn generate_test_grid(tile_set: &Vec<Tile3x3>, width: u32, height: u32) -> R
 }
 
 pub fn grid_strip_invalid(tile_grid: &RectVec) -> RectVec {
-    let mut stripped = RectVec::new(tile_grid.bounds.clone());
+    let mut padded = RectVec::new(Rect::new(
+        tile_grid.bounds.x,
+        tile_grid.bounds.y,
+        tile_grid.bounds.w + 2,
+        tile_grid.bounds.h + 2,
+    ));
+
+    // copy grid to the padded grid
+    for (pos, tile) in tile_grid.iter_enumerate() {
+        let padded_pos = Point { x: pos.x + 1, y: pos.y + 1 };
+        padded.set_pt_unchecked(&padded_pos, tile.clone())
+    }
+    
+    // todo: rest of padding
+
 
     for (pos, tile) in tile_grid.iter_enumerate() {
-
         let mut tile = tile.clone();
 
         if tile.get(C_IDX) == false {
@@ -82,27 +107,23 @@ pub fn grid_strip_invalid(tile_grid: &RectVec) -> RectVec {
 
         // check diagonal neighbour for contiguous fill cases
         if tile.get(NW_IDX) {
-            if let Some(neighbour) = tile_grid.get_pt(&pos.north_west()) {
-                tile.set(NW_IDX, neighbour.get(SE_IDX));
-            }
+            let neighbour = tile_grid.get_pt_unchecked(&pos.north_west());
+            tile.set(NW_IDX, neighbour.get(SE_IDX));
         }
 
         if tile.get(NE_IDX) {
-            if let Some(neighbour) = tile_grid.get_pt(&pos.north_east()) {
-                tile.set(NE_IDX, neighbour.get(SW_IDX));
-            }
+            let neighbour = tile_grid.get_pt_unchecked(&pos.north_east());
+            tile.set(NE_IDX, neighbour.get(SW_IDX));
         }
 
         if tile.get(SW_IDX) {
-            if let Some(neighbour) = tile_grid.get_pt(&pos.south_west()) {
-                tile.set(SW_IDX, neighbour.get(NE_IDX));
-            }
+            let neighbour = tile_grid.get_pt_unchecked(&pos.south_west());
+            tile.set(SW_IDX, neighbour.get(NE_IDX));
         }
 
         if tile.get(SE_IDX) {
-            if let Some(neighbour) = tile_grid.get_pt(&pos.south_east()) {
-                tile.set(SE_IDX, neighbour.get(NW_IDX));
-            }
+            let neighbour = tile_grid.get_pt_unchecked(&pos.south_east());
+            tile.set(SE_IDX, neighbour.get(NW_IDX));
         }
 
         // clear out invalid pixels
