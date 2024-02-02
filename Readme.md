@@ -130,3 +130,6 @@ But wait.
 - Fourier series approximation to map x -> y
 - restructure data for u16 for all the center points of each tile, then the rest of the tile is 8bits
 - create a padding edge around the grid so we dont need to bounds check
+    - this would have been fruitless due to needing to clone the initial matrix into a padded matrix, then also having
+      to clone that to work on a mutable version of it in parallel.
+    - however a shortcut to detect when the matrix actually needs to bounds check has improved performance 8-40% (40??)
