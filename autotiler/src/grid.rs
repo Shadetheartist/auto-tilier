@@ -80,61 +80,122 @@ pub fn grid_strip_invalid(tile_grid: &RectVec) -> RectVec {
             continue;
         }
 
-        // check diagonal neighbour for contiguous fill cases
-        if tile.get(NW_IDX) {
-            if let Some(neighbour) = tile_grid.get_pt(&pos.north_west()) {
-                tile.set(NW_IDX, neighbour.get(SE_IDX));
+        // detect if we're on the edge of the grid, and therefore need to bounds check each neighbour
+        if pos.x == 0 || pos.x == tile_grid.bounds.w || pos.y == 0 || pos.y == tile_grid.bounds.h {
+            // check diagonal neighbour for contiguous fill cases
+            if tile.get(NW_IDX) {
+                if let Some(neighbour) = tile_grid.get_pt(&pos.north_west()) {
+                    tile.set(NW_IDX, neighbour.get(SE_IDX));
+                }
             }
-        }
 
-        if tile.get(NE_IDX) {
-            if let Some(neighbour) = tile_grid.get_pt(&pos.north_east()) {
-                tile.set(NE_IDX, neighbour.get(SW_IDX));
+            if tile.get(NE_IDX) {
+                if let Some(neighbour) = tile_grid.get_pt(&pos.north_east()) {
+                    tile.set(NE_IDX, neighbour.get(SW_IDX));
+                }
             }
-        }
 
-        if tile.get(SW_IDX) {
-            if let Some(neighbour) = tile_grid.get_pt(&pos.south_west()) {
-                tile.set(SW_IDX, neighbour.get(NE_IDX));
+            if tile.get(SW_IDX) {
+                if let Some(neighbour) = tile_grid.get_pt(&pos.south_west()) {
+                    tile.set(SW_IDX, neighbour.get(NE_IDX));
+                }
             }
-        }
 
-        if tile.get(SE_IDX) {
-            if let Some(neighbour) = tile_grid.get_pt(&pos.south_east()) {
-                tile.set(SE_IDX, neighbour.get(NW_IDX));
+            if tile.get(SE_IDX) {
+                if let Some(neighbour) = tile_grid.get_pt(&pos.south_east()) {
+                    tile.set(SE_IDX, neighbour.get(NW_IDX));
+                }
             }
+
+            // clear out invalid pixels
+            if let Some(neighbour) = tile_grid.get_pt(&pos.north()) {
+                tile.set(N_IDX, tile.get(N_IDX) & neighbour.get(C_IDX) & neighbour.get(S_IDX) & tile.get(C_IDX));
+
+                tile.set(NW_IDX, tile.get(NW_IDX) & neighbour.get(C_IDX) & neighbour.get(SW_IDX) & tile.get(C_IDX));
+                tile.set(NE_IDX, tile.get(NE_IDX) & neighbour.get(C_IDX) & neighbour.get(SE_IDX) & tile.get(C_IDX));
+            }
+
+            if let Some(neighbour) = tile_grid.get_pt(&pos.west()) {
+                tile.set(W_IDX, tile.get(W_IDX) & neighbour.get(C_IDX) & neighbour.get(E_IDX) & tile.get(C_IDX));
+
+                tile.set(NW_IDX, tile.get(NW_IDX) & neighbour.get(C_IDX) & neighbour.get(NE_IDX) & tile.get(C_IDX));
+                tile.set(SW_IDX, tile.get(SW_IDX) & neighbour.get(C_IDX) & neighbour.get(SE_IDX) & tile.get(C_IDX));
+            }
+
+            if let Some(neighbour) = tile_grid.get_pt(&pos.east()) {
+                tile.set(E_IDX, tile.get(E_IDX) & neighbour.get(C_IDX) & neighbour.get(W_IDX) & tile.get(C_IDX));
+
+                tile.set(NE_IDX, tile.get(NE_IDX) & neighbour.get(C_IDX) & neighbour.get(NW_IDX) & tile.get(C_IDX));
+                tile.set(SE_IDX, tile.get(SE_IDX) & neighbour.get(C_IDX) & neighbour.get(SW_IDX) & tile.get(C_IDX));
+            }
+
+            if let Some(neighbour) = tile_grid.get_pt(&pos.south()) {
+                tile.set(S_IDX, tile.get(S_IDX) & neighbour.get(C_IDX) & neighbour.get(N_IDX) & tile.get(C_IDX));
+
+                tile.set(SW_IDX, tile.get(SW_IDX) & neighbour.get(C_IDX) & neighbour.get(NW_IDX) & tile.get(C_IDX));
+                tile.set(SE_IDX, tile.get(SE_IDX) & neighbour.get(C_IDX) & neighbour.get(NE_IDX) & tile.get(C_IDX));
+            }
+
+            stripped.set_pt(&pos, tile);
+        } else {
+            // check diagonal neighbour for contiguous fill cases
+            if tile.get(NW_IDX) {
+                if let Some(neighbour) = tile_grid.get_pt(&pos.north_west()) {
+                    tile.set(NW_IDX, neighbour.get(SE_IDX));
+                }
+            }
+
+            if tile.get(NE_IDX) {
+                if let Some(neighbour) = tile_grid.get_pt(&pos.north_east()) {
+                    tile.set(NE_IDX, neighbour.get(SW_IDX));
+                }
+            }
+
+            if tile.get(SW_IDX) {
+                if let Some(neighbour) = tile_grid.get_pt(&pos.south_west()) {
+                    tile.set(SW_IDX, neighbour.get(NE_IDX));
+                }
+            }
+
+            if tile.get(SE_IDX) {
+                if let Some(neighbour) = tile_grid.get_pt(&pos.south_east()) {
+                    tile.set(SE_IDX, neighbour.get(NW_IDX));
+                }
+            }
+
+            // clear out invalid pixels
+            if let Some(neighbour) = tile_grid.get_pt(&pos.north()) {
+                tile.set(N_IDX, tile.get(N_IDX) & neighbour.get(C_IDX) & neighbour.get(S_IDX) & tile.get(C_IDX));
+
+                tile.set(NW_IDX, tile.get(NW_IDX) & neighbour.get(C_IDX) & neighbour.get(SW_IDX) & tile.get(C_IDX));
+                tile.set(NE_IDX, tile.get(NE_IDX) & neighbour.get(C_IDX) & neighbour.get(SE_IDX) & tile.get(C_IDX));
+            }
+
+            if let Some(neighbour) = tile_grid.get_pt(&pos.west()) {
+                tile.set(W_IDX, tile.get(W_IDX) & neighbour.get(C_IDX) & neighbour.get(E_IDX) & tile.get(C_IDX));
+
+                tile.set(NW_IDX, tile.get(NW_IDX) & neighbour.get(C_IDX) & neighbour.get(NE_IDX) & tile.get(C_IDX));
+                tile.set(SW_IDX, tile.get(SW_IDX) & neighbour.get(C_IDX) & neighbour.get(SE_IDX) & tile.get(C_IDX));
+            }
+
+            if let Some(neighbour) = tile_grid.get_pt(&pos.east()) {
+                tile.set(E_IDX, tile.get(E_IDX) & neighbour.get(C_IDX) & neighbour.get(W_IDX) & tile.get(C_IDX));
+
+                tile.set(NE_IDX, tile.get(NE_IDX) & neighbour.get(C_IDX) & neighbour.get(NW_IDX) & tile.get(C_IDX));
+                tile.set(SE_IDX, tile.get(SE_IDX) & neighbour.get(C_IDX) & neighbour.get(SW_IDX) & tile.get(C_IDX));
+            }
+
+            if let Some(neighbour) = tile_grid.get_pt(&pos.south()) {
+                tile.set(S_IDX, tile.get(S_IDX) & neighbour.get(C_IDX) & neighbour.get(N_IDX) & tile.get(C_IDX));
+
+                tile.set(SW_IDX, tile.get(SW_IDX) & neighbour.get(C_IDX) & neighbour.get(NW_IDX) & tile.get(C_IDX));
+                tile.set(SE_IDX, tile.get(SE_IDX) & neighbour.get(C_IDX) & neighbour.get(NE_IDX) & tile.get(C_IDX));
+            }
+
+            stripped.set_pt(&pos, tile);
         }
 
-        // clear out invalid pixels
-        if let Some(neighbour) = tile_grid.get_pt(&pos.north()) {
-            tile.set(N_IDX, tile.get(N_IDX) & neighbour.get(C_IDX) & neighbour.get(S_IDX) & tile.get(C_IDX));
 
-            tile.set(NW_IDX, tile.get(NW_IDX) & neighbour.get(C_IDX) & neighbour.get(SW_IDX) & tile.get(C_IDX));
-            tile.set(NE_IDX, tile.get(NE_IDX) & neighbour.get(C_IDX) & neighbour.get(SE_IDX) & tile.get(C_IDX));
-        }
-
-        if let Some(neighbour) = tile_grid.get_pt(&pos.west()) {
-            tile.set(W_IDX, tile.get(W_IDX) & neighbour.get(C_IDX) & neighbour.get(E_IDX) & tile.get(C_IDX));
-
-            tile.set(NW_IDX, tile.get(NW_IDX) & neighbour.get(C_IDX) & neighbour.get(NE_IDX) & tile.get(C_IDX));
-            tile.set(SW_IDX, tile.get(SW_IDX) & neighbour.get(C_IDX) & neighbour.get(SE_IDX) & tile.get(C_IDX));
-        }
-
-        if let Some(neighbour) = tile_grid.get_pt(&pos.east()) {
-            tile.set(E_IDX, tile.get(E_IDX) & neighbour.get(C_IDX) & neighbour.get(W_IDX) & tile.get(C_IDX));
-
-            tile.set(NE_IDX, tile.get(NE_IDX) & neighbour.get(C_IDX) & neighbour.get(NW_IDX) & tile.get(C_IDX));
-            tile.set(SE_IDX, tile.get(SE_IDX) & neighbour.get(C_IDX) & neighbour.get(SW_IDX) & tile.get(C_IDX));
-        }
-
-        if let Some(neighbour) = tile_grid.get_pt(&pos.south()) {
-            tile.set(S_IDX, tile.get(S_IDX) & neighbour.get(C_IDX) & neighbour.get(N_IDX) & tile.get(C_IDX));
-
-            tile.set(SW_IDX, tile.get(SW_IDX) & neighbour.get(C_IDX) & neighbour.get(NW_IDX) & tile.get(C_IDX));
-            tile.set(SE_IDX, tile.get(SE_IDX) & neighbour.get(C_IDX) & neighbour.get(NE_IDX) & tile.get(C_IDX));
-        }
-
-        stripped.set_pt(&pos, tile);
     }
 
     stripped
