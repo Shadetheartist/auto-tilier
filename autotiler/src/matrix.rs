@@ -35,6 +35,10 @@ impl Matrix {
         }
     }
 
+    pub fn idx_tile_unchecked(&self, pt: &Point) -> usize {
+        (pt.y * self.px_bounds.w * 3 + pt.x * 9) as usize
+    }
+
     pub fn idx(&self, pt: &Point) -> Option<usize> {
         if self.px_bounds.contains(pt) {
             Some((pt.y * self.px_bounds.w + pt.x) as usize)
@@ -82,6 +86,11 @@ impl Matrix {
         Some(&self.data[idx..idx + 9])
     }
 
+    pub fn tile_unchecked(&self, pt: &Point) -> &MatrixTile {
+        let idx = self.idx_tile_unchecked(&pt);
+        &self.data[idx..idx + 9]
+    }
+
     pub fn tile_mut(&mut self, pt: &Point) -> Option<&mut MatrixTile> {
         let idx = self.idx_tile(&pt)?;
 
@@ -94,6 +103,8 @@ impl Matrix {
 
     pub fn strip_invalid(&self) -> Matrix {
         let mut matrix = self.clone();
+        let w = matrix.tile_bounds.w - 1;
+        let h = matrix.tile_bounds.h - 1;
 
         let strip = |pos: &Point, tile: &mut MatrixTile| {
 
@@ -101,59 +112,121 @@ impl Matrix {
                 return;
             }
 
-            // check diagonal neighbour for contiguous fill cases
-            if tile[NW_IDX] {
-                if let Some(neighbour) = self.tile(&pos.north_west()) {
+
+            if pos.x == 0 || pos.x == w || pos.y == 0 || pos.y == h {
+                // needs bounds checks
+                // check diagonal neighbour for contiguous fill cases
+                if tile[NW_IDX] {
+                    if let Some(neighbour) = self.tile(&pos.north_west()) {
+                        tile[NW_IDX] = neighbour[SE_IDX];
+                    }
+                }
+
+                if tile[NE_IDX] {
+                    if let Some(neighbour) = self.tile(&pos.north_east()) {
+                        tile[NE_IDX] = neighbour[SW_IDX];
+                    }
+                }
+
+                if tile[SW_IDX] {
+                    if let Some(neighbour) = self.tile(&pos.south_west()) {
+                        tile[SW_IDX] = neighbour[NE_IDX];
+                    }
+                }
+
+                if tile[SE_IDX] {
+                    if let Some(neighbour) = self.tile(&pos.south_east()) {
+                        tile[SE_IDX] = neighbour[NW_IDX];
+                    }
+                }
+
+                // clear out invalid pixels
+                if let Some(neighbour) = self.tile(&pos.north()) {
+                    tile[N_IDX] = tile[N_IDX] & neighbour[C_IDX] & neighbour[S_IDX] & tile[C_IDX];
+
+                    tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
+                    tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
+                }
+
+                if let Some(neighbour) = self.tile(&pos.west()) {
+                    tile[W_IDX] = tile[W_IDX] & neighbour[C_IDX] & neighbour[E_IDX] & tile[C_IDX];
+
+                    tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
+                    tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
+                }
+
+                if let Some(neighbour) = self.tile(&pos.east()) {
+                    tile[E_IDX] = tile[E_IDX] & neighbour[C_IDX] & neighbour[W_IDX] & tile[C_IDX];
+
+                    tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
+                    tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
+                }
+
+                if let Some(neighbour) = self.tile(&pos.south()) {
+                    tile[S_IDX] = tile[S_IDX] & neighbour[C_IDX] & neighbour[N_IDX] & tile[C_IDX];
+
+                    tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
+                    tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
+                }
+
+            } else {
+                // does not need bounds checks
+
+                // check diagonal neighbour for contiguous fill cases
+                if tile[NW_IDX] {
+                    let neighbour = self.tile_unchecked(&pos.north_west());
                     tile[NW_IDX] = neighbour[SE_IDX];
                 }
-            }
 
-            if tile[NE_IDX] {
-                if let Some(neighbour) = self.tile(&pos.north_east()) {
+                if tile[NE_IDX] {
+                    let neighbour = self.tile_unchecked(&pos.north_east());
                     tile[NE_IDX] = neighbour[SW_IDX];
                 }
-            }
 
-            if tile[SW_IDX] {
-                if let Some(neighbour) = self.tile(&pos.south_west()) {
+                if tile[SW_IDX] {
+                    let neighbour = self.tile_unchecked(&pos.south_west());
                     tile[SW_IDX] = neighbour[NE_IDX];
                 }
-            }
 
-            if tile[SE_IDX] {
-                if let Some(neighbour) = self.tile(&pos.south_east()) {
+                if tile[SE_IDX] {
+                    let neighbour = self.tile_unchecked(&pos.south_east());
                     tile[SE_IDX] = neighbour[NW_IDX];
+                }
+
+                // clear out invalid pixels
+                {
+                    let neighbour = self.tile_unchecked(&pos.north());
+                    tile[N_IDX] = tile[N_IDX] & neighbour[C_IDX] & neighbour[S_IDX] & tile[C_IDX];
+
+                    tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
+                    tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
+                }
+
+                {
+                    let neighbour = self.tile_unchecked(&pos.west());
+                    tile[W_IDX] = tile[W_IDX] & neighbour[C_IDX] & neighbour[E_IDX] & tile[C_IDX];
+
+                    tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
+                    tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
+                }
+
+                {
+                    let neighbour = self.tile_unchecked(&pos.east());
+                    tile[E_IDX] = tile[E_IDX] & neighbour[C_IDX] & neighbour[W_IDX] & tile[C_IDX];
+
+                    tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
+                    tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
+                }
+
+                {
+                    let neighbour = self.tile_unchecked(&pos.south());
+                    tile[S_IDX] = tile[S_IDX] & neighbour[C_IDX] & neighbour[N_IDX] & tile[C_IDX];
+
+                    tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
+                    tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
                 }
             }
 
-            // clear out invalid pixels
-            if let Some(neighbour) = self.tile(&pos.north()) {
-                tile[N_IDX] = tile[N_IDX] & neighbour[C_IDX] & neighbour[S_IDX] & tile[C_IDX];
-
-                tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
-                tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
-            }
-
-            if let Some(neighbour) = self.tile(&pos.west()) {
-                tile[W_IDX] = tile[W_IDX] & neighbour[C_IDX] & neighbour[E_IDX] & tile[C_IDX];
-
-                tile[NW_IDX] = tile[NW_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
-                tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[SE_IDX] & tile[C_IDX];
-            }
-
-            if let Some(neighbour) = self.tile(&pos.east()) {
-                tile[E_IDX] = tile[E_IDX] & neighbour[C_IDX] & neighbour[W_IDX] & tile[C_IDX];
-
-                tile[NE_IDX] = tile[NE_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
-                tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[SW_IDX] & tile[C_IDX];
-            }
-
-            if let Some(neighbour) = self.tile(&pos.south()) {
-                tile[S_IDX] = tile[S_IDX] & neighbour[C_IDX] & neighbour[N_IDX] & tile[C_IDX];
-
-                tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
-                tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
-            }
         };
 
         if matrix.data.len() < 64 * 64 * 9 {
