@@ -133,3 +133,19 @@ But wait.
     - this would have been fruitless due to needing to clone the initial matrix into a padded matrix, then also having
       to clone that to work on a mutable version of it in parallel.
     - however a shortcut to detect when the matrix actually needs to bounds check has improved performance 8-40% (40??)
+
+### Psudo-Padding
+
+By reducing the number of bounds checks while access the tile's neighbours, which is a very frequent operation, we get a
+significant performance improvement. This is due to the reduction in expensive branch statements. The branch predictor
+had it pretty easy before anyway, but we really dial it in with this shortcut.
+
+`x == 0 || x == bounds.w || y == 0 || y == bounds.h`
+
+![img.png](img/psudo-padding-40.png)
+
+### Experiment with Fourier series approximation
+
+Each 3x3 grid of tiles (9x9 in pixels) is equivalent to some 81 bit integer value. And each of these integers maps to a
+solved 81 bit integer value. So theoretically, a mathematical function should exist that provides solutions for all
+situations. 
