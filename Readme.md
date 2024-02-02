@@ -1,5 +1,7 @@
 # Rust Auto Tiler
 
+![pixles.png](img%2Fpixles.png)
+
 ## The Project
 
 This project exists to optimize a 3x3 auto-tiling algorithm. I found I had an interest in this problem after
@@ -144,8 +146,53 @@ had it pretty easy before anyway, but we really dial it in with this shortcut.
 
 ![img.png](img/psudo-padding-40.png)
 
-### Experiment with Fourier series approximation
+### Experiment with mathematical solutions
 
 Each 3x3 grid of tiles (9x9 in pixels) is equivalent to some 81 bit integer value. And each of these integers maps to a
 solved 81 bit integer value. So theoretically, a mathematical function should exist that provides solutions for all
-situations. 
+situations.
+
+On second thought.
+
+`2^81 = 2,417,851,639,229,258,349,412,352`
+
+But we're not using that entire space of course, we don't have a tile for every value in 2^9, only a small subset of
+them. The standard tileset has 48 tiles defined. So for each tile in a 3x3 tile grid composing a solvable matrix,
+there's only 48^9 possible inputs.
+
+`48^9 = 1,352,605,460,594,688`
+
+That's a quadrillion-plus. yikes.
+
+to solve a grid mathematically, options are
+
+- exact mapping (even if possible, definitely slower)
+- machine learning model (probably not precise enough, also almost definitely slower)
+- statistical regression (almost definitely no correlation between input and output)
+- polynomial/Lagrange interpolation
+- fourier series approximation
+
+between polynomial interpolation and fourier series approximation, neither seem particularly easy to derive. And in any
+case, both output functions would have incomprehensibly many terms that it would be unlikely to fit in memory. Besides
+that, it's also slower than the existing algorithm.
+
+Due to these reasons, a faster mathematical solution is not possible. But it was neat to consider.
+
+### Optimal Data Type
+
+I hate, *hate*, **_hate_** that these grids are 3x3, i.e. 9 bits in size. That means that a tile is _just barely_ too
+big to fit
+in an 8-bit data type, the next level up, 16-bit, has 7 wasted bits. And i only really interact with the edges of each
+tile, I wish I could just delete the center bit and stick all the tile data in an 8-bit data type.
+
+It came to me in a dream. I *could* delete the center bit. Or rather, move it elsewhere. At least in the context of a
+3x3 grid of tiles.
+
+New data structure for a 3x3 grid.
+
+- 16 bits for each of the 9 center bits of each tile.
+- 9x 8-bit for the edge pixels of each tile in the grid.
+
+This data structure is really snazzy, as long as any performance gains made by it compensate for the time it takes to
+convert from the larger bool vector and back. Which is wholly unlikely. And the cursed part is, the 3x3 tile grid is
+only relevant to solving the center tile.
