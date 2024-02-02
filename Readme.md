@@ -122,3 +122,11 @@ performance *without even changing the algorithm*.
 
 There's probably still more that can be done. But all these optimizations are going toward creating test data. So, time
 to move on.
+
+But wait.
+
+## Ideas
+
+- Fourier series approximation to map x -> y
+- restructure data for u16 for all the center points of each tile, then the rest of the tile is 8bits
+- create a padding edge around the grid so we dont need to bounds check
