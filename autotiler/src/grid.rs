@@ -48,7 +48,8 @@ impl RectVec {
     }
 
     pub fn set_pt_unchecked(&mut self, pt: &Point, value: Tile3x3) {
-        self.data[self.idx_unchecked(pt)] = value
+        let idx = self.idx_unchecked(pt);
+        self.data[idx] = value
     }
 
     pub fn iter_enumerate(&self) -> impl Iterator<Item=(Point, &Tile3x3)> {
