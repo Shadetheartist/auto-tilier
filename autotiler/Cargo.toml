@@ -8,6 +8,7 @@ rand = "0.8"  # Use the latest version
 image = "0.24.8"
 bitvec = "1.0.1"
 num_cpus = { version = "1.16.0", features = [] }
+log = "0.4.20"
 
 [dev-dependencies]
 criterion = "0.5.1"

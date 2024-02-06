@@ -36,7 +36,7 @@ fn main() {
 
         let random_matrix = autotiler::matrix::generate_random_matrix(&tile_set, 8, 8);
         let test_matrix = random_matrix.strip_invalid();
-        let grid_widget = tile_matrix_widget(&test_matrix, 27 * 3);
+        let grid_widget = tile_matrix_widget(test_matrix, 27 * 3);
         let gtk_box = gtk::Box::builder().margin(16).build();
         gtk_box.add(&grid_widget);
         bot.pack1(&gtk_box, true, false);
@@ -77,21 +77,25 @@ struct TileWidgetState {
     hovered_pos: Point,
     active_pos: Option<Point>,
     pathing_pos: Option<Point>,
-    active: bool,
+    active_button: u32,
+    matrix: Matrix,
 }
 
-fn tile_matrix_widget(matrix: &Matrix, size: u32) -> DrawingArea {
+fn tile_matrix_widget(matrix: Matrix, size: u32) -> DrawingArea {
     let drawing_area = DrawingArea::new();
+
+    let size = size as f64;
+    let px_coefficient = size / 3.0;
+    drawing_area.set_size_request(matrix.px_bounds.w * px_coefficient as i32, matrix.px_bounds.h * px_coefficient as i32);
 
     let state = Rc::new(RefCell::new(TileWidgetState {
         hovered_pos: Point { x: 0, y: 0 },
         active_pos: None,
         pathing_pos: None,
-        active: false,
+        active_button: 0,
+        matrix: matrix,
     }));
 
-    let size = size as f64;
-    let px_coefficient = size / 3.0;
 
     pub fn pt(idx: usize) -> Point {
         let x = idx as i32 % 3;
@@ -99,16 +103,12 @@ fn tile_matrix_widget(matrix: &Matrix, size: u32) -> DrawingArea {
         Point { x, y }
     }
 
-    drawing_area.set_size_request(matrix.px_bounds.w * px_coefficient as i32, matrix.px_bounds.h * px_coefficient as i32);
-
-    let matrix = matrix.clone();
-
     {
         let state = Rc::clone(&state);
         drawing_area.connect_draw(move |_, ctx| {
             let state = state.borrow_mut();
 
-            for (pos, tile) in matrix.iter_tiles_enumerate() {
+            for (pos, tile) in state.matrix.iter_tiles_enumerate() {
                 // Generate an image.
                 //let img = grid_image_buffer(1024, 1024, 64, 3);
 
@@ -202,12 +202,11 @@ fn tile_matrix_widget(matrix: &Matrix, size: u32) -> DrawingArea {
             let x = (event.position().0 / size) as i32;
             let y = (event.position().1 / size) as i32;
 
-            if !state.active {
+            if state.active_button != event.button() {
                 _widget.queue_draw();
                 state.active_pos = Some(state.hovered_pos.clone());
-                state.active = true;
+                state.active_button = event.button();
             }
-
 
             println!("Mouse press position: ({}, {})", x, y);
 
@@ -220,16 +219,39 @@ fn tile_matrix_widget(matrix: &Matrix, size: u32) -> DrawingArea {
         drawing_area.add_events(gdk::EventMask::BUTTON_RELEASE_MASK);
 
         drawing_area.connect_button_release_event(move |_widget, event| {
-            let mut state = state.borrow_mut();
+
             let x = (event.position().0 / size) as i32;
             let y = (event.position().1 / size) as i32;
 
-            _widget.queue_draw();
+            println!("Mouse release position: ({}, {})", x, y);
+
+            let mut state = state.borrow_mut();
+
+            if state.pathing_pos.is_some() && state.active_pos.is_some() {
+                let from = state.active_pos.unwrap();
+                let to = state.pathing_pos.unwrap();
+                if state.active_button == 1 {
+                    state.matrix.path(&from, &to);
+                } else if state.active_button == 3 {
+                    state.matrix.erase_path(&from, &to);
+                    state.matrix = state.matrix.strip_invalid();
+                }
+            } else if state.active_pos.is_some() {
+                let pt = state.active_pos.unwrap();
+                if state.active_button == 1 {
+                    state.matrix.fill(&pt);
+                    state.matrix = state.matrix.strip_invalid();
+                } else if state.active_button == 3 {
+                    state.matrix.erase(&pt);
+                    state.matrix = state.matrix.strip_invalid();
+                }
+            }
+
             state.pathing_pos = None;
             state.active_pos = None;
-            state.active = false;
+            state.active_button = 0;
 
-            println!("Mouse release position: ({}, {})", x, y);
+            _widget.queue_draw();
 
             Proceed
         });

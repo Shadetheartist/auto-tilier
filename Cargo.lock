@@ -65,6 +65,7 @@ dependencies = [
  "bitvec",
  "criterion",
  "image",
+ "log",
  "num_cpus",
  "rand",
 ]

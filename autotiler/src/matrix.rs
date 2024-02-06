@@ -1,10 +1,9 @@
-use std::cmp::{max, min};
 use std::thread;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use crate::point::Point;
 use crate::rect::Rect;
-use crate::tile::{C_IDX, E_IDX, N_IDX, NE_IDX, NW_IDX, S_IDX, SE_IDX, SW_IDX, Tile3x3, W_IDX};
+use crate::tile::{C_IDX, COMPLIMENTARY_IDX, E_IDX, N_IDX, NE_IDX, NW_IDX, S_IDX, SE_IDX, SW_IDX, Tile3x3, W_IDX};
 
 #[derive(Clone)]
 pub struct Matrix {
@@ -23,6 +22,69 @@ impl Matrix {
             data,
             px_bounds,
             tile_bounds: bounds,
+        }
+    }
+
+    fn compute_indices(pt_diff: &Point) -> (usize, usize) {
+        // we can exploit the symmetry of the 3x3 pixels of the tile and the 3x3 grid coordinates to
+        // compute the pixels which should be 'on' after drawing the path.
+        let idx_from = (pt_diff.y * 3 + pt_diff.x + C_IDX as i32) as usize;
+
+        // lookup the complimentary pixel
+        let idx_to = COMPLIMENTARY_IDX[idx_from].expect("idx_from cannot be a corner pixel.");
+
+        (idx_from, idx_to)
+    }
+
+    pub fn path(&mut self, from_pt: &Point, to_pt: &Point) {
+        let pt_diff = Point {
+            x: to_pt.x - from_pt.x,
+            y: to_pt.y - from_pt.y,
+        };
+
+        let (from_idx, to_idx) = Self::compute_indices(&pt_diff);
+
+        if let Some(from_tile) = self.tile_mut(from_pt) {
+            from_tile[from_idx] = true;
+            from_tile[C_IDX] = true;
+        }
+
+        if let Some(to_tile) = self.tile_mut(to_pt) {
+            to_tile[to_idx] = true;
+            to_tile[C_IDX] = true;
+        }
+    }
+
+    pub fn erase_path(&mut self, from_pt: &Point, to_pt: &Point) {
+        let pt_diff = Point {
+            x: to_pt.x - from_pt.x,
+            y: to_pt.y - from_pt.y,
+        };
+
+        let (from_idx, to_idx) = Self::compute_indices(&pt_diff);
+
+        if let Some(from_tile) = self.tile_mut(from_pt) {
+            from_tile[from_idx] = false;
+        }
+
+        if let Some(to_tile) = self.tile_mut(to_pt) {
+            to_tile[to_idx] = false;
+        }
+    }
+
+    pub fn fill(&mut self, pt: &Point) {
+        if let Some(from_tile) = self.tile_mut(pt) {
+            for i in 0..9 {
+                from_tile[i] = true;
+            }
+        }
+    }
+
+    pub fn erase(&mut self, pt: &Point) {
+        if let Some(from_tile) = self.tile_mut(pt) {
+            for i in 0..9 {
+                from_tile[i] = false;
+            }
         }
     }
 
@@ -46,7 +108,6 @@ impl Matrix {
             None
         }
     }
-
 
 
     pub fn get_pt(&self, pt: &Point) -> Option<bool> {
@@ -109,7 +170,6 @@ impl Matrix {
         let h = matrix.tile_bounds.h - 1;
 
         let strip = |pos: &Point, tile: &mut MatrixTile| {
-
             if tile[C_IDX] == false {
                 return;
             }
@@ -170,7 +230,6 @@ impl Matrix {
                     tile[SW_IDX] = tile[SW_IDX] & neighbour[C_IDX] & neighbour[NW_IDX] & tile[C_IDX];
                     tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
                 }
-
             } else {
                 // does not need bounds checks
 
@@ -228,7 +287,6 @@ impl Matrix {
                     tile[SE_IDX] = tile[SE_IDX] & neighbour[C_IDX] & neighbour[NE_IDX] & tile[C_IDX];
                 }
             }
-
         };
 
         if matrix.data.len() < 64 * 64 * 9 {
@@ -240,7 +298,7 @@ impl Matrix {
                 }
             }
 
-            return matrix
+            return matrix;
         }
 
         // length of a row in px
@@ -255,15 +313,15 @@ impl Matrix {
                         for x in 0..matrix.tile_bounds.w {
                             let pos = Point {
                                 x: x,
-                                y: (y + chunk_idx as i32 * rows_per_chunk)
+                                y: (y + chunk_idx as i32 * rows_per_chunk),
                             };
 
-                            let start_idx = (y * matrix.tile_bounds.w * 9 + x*9) as usize;
-                            if start_idx >= chunk.len() && start_idx+9 >= chunk.len() {
-                                return
+                            let start_idx = (y * matrix.tile_bounds.w * 9 + x * 9) as usize;
+                            if start_idx >= chunk.len() && start_idx + 9 >= chunk.len() {
+                                return;
                             }
 
-                            let tile: &mut MatrixTile = &mut chunk[start_idx..start_idx+9];
+                            let tile: &mut MatrixTile = &mut chunk[start_idx..start_idx + 9];
                             strip(&pos, tile);
                         }
                     }

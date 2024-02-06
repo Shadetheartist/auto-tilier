@@ -14,6 +14,18 @@ pub const SW_IDX: usize = 6;
 pub const S_IDX: usize = 7;
 pub const SE_IDX: usize = 8;
 
+pub const COMPLIMENTARY_IDX: [Option<usize>; 9] = [
+    /* NW_IDX */    None,
+    /* N_IDX */     Some(S_IDX),
+    /* NE_IDX */    None,
+    /* W_IDX */     Some(E_IDX),
+    /* C_IDX */     None,
+    /* E_IDX */     Some(W_IDX),
+    /* SW_IDX */    None,
+    /* S_IDX */     Some(N_IDX),
+    /* SE_IDX */    None,
+];
+
 impl Tile3x3 {
     #[inline]
     pub fn idx(x: u8, y: u8) -> usize {
