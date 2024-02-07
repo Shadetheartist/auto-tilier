@@ -240,10 +240,8 @@ fn tile_matrix_widget(matrix: Matrix, size: u32) -> DrawingArea {
                 let pt = state.active_pos.unwrap();
                 if state.active_button == 1 {
                     state.matrix.fill(&pt);
-                    state.matrix = state.matrix.strip_invalid();
                 } else if state.active_button == 3 {
                     state.matrix.erase(&pt);
-                    state.matrix = state.matrix.strip_invalid();
                 }
             }
 

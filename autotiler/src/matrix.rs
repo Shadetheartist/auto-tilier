@@ -78,6 +78,46 @@ impl Matrix {
                 from_tile[i] = true;
             }
         }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.north_west()) {
+            neighbour_tile[SE_IDX] = neighbour_tile[C_IDX];
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.north()) {
+            neighbour_tile[SW_IDX] = neighbour_tile[C_IDX];
+            neighbour_tile[S_IDX] = neighbour_tile[C_IDX];
+            neighbour_tile[SE_IDX] = neighbour_tile[C_IDX];
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.north_east()) {
+            neighbour_tile[SW_IDX] = neighbour_tile[C_IDX];
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.west()) {
+            neighbour_tile[NE_IDX] = neighbour_tile[C_IDX];
+            neighbour_tile[E_IDX] = neighbour_tile[C_IDX];
+            neighbour_tile[SE_IDX] = neighbour_tile[C_IDX];
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.east()) {
+            neighbour_tile[NW_IDX] = neighbour_tile[C_IDX];
+            neighbour_tile[W_IDX] = neighbour_tile[C_IDX];
+            neighbour_tile[SW_IDX] = neighbour_tile[C_IDX];
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.south_west()) {
+            neighbour_tile[NE_IDX] = neighbour_tile[C_IDX];
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.south()) {
+            neighbour_tile[NW_IDX] = neighbour_tile[C_IDX];
+            neighbour_tile[N_IDX] = neighbour_tile[C_IDX];
+            neighbour_tile[NE_IDX] = neighbour_tile[C_IDX];
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.south_east()) {
+            neighbour_tile[NW_IDX] = neighbour_tile[C_IDX];
+        }
     }
 
     pub fn erase(&mut self, pt: &Point) {
@@ -85,6 +125,46 @@ impl Matrix {
             for i in 0..9 {
                 from_tile[i] = false;
             }
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.north_west()) {
+            neighbour_tile[SE_IDX] = false;
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.north()) {
+            neighbour_tile[SW_IDX] = false;
+            neighbour_tile[S_IDX] = false;
+            neighbour_tile[SE_IDX] = false;
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.north_east()) {
+            neighbour_tile[SW_IDX] = false;
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.west()) {
+            neighbour_tile[NE_IDX] = false;
+            neighbour_tile[E_IDX] = false;
+            neighbour_tile[SE_IDX] = false;
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.east()) {
+            neighbour_tile[NW_IDX] = false;
+            neighbour_tile[W_IDX] = false;
+            neighbour_tile[SW_IDX] = false;
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.south_west()) {
+            neighbour_tile[NE_IDX] = false;
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.south()) {
+            neighbour_tile[NW_IDX] = false;
+            neighbour_tile[N_IDX] = false;
+            neighbour_tile[NE_IDX] = false;
+        }
+
+        if let Some(neighbour_tile) = self.tile_mut(&pt.south_east()) {
+            neighbour_tile[NW_IDX] = false;
         }
     }
 

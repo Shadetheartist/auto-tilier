@@ -64,4 +64,20 @@ impl Point {
             y: self.y,
         }
     }
+
+    pub fn local_region(&self) -> [Point; 9] {
+        [
+            self.north_west(),
+            self.north(),
+            self.north_east(),
+
+            self.west(),
+            self.clone(),
+            self.east(),
+
+            self.south_west(),
+            self.south(),
+            self.south_east(),
+        ]
+    }
 }
